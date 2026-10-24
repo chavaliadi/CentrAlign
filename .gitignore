@@ -9,3 +9,4 @@ runs/*
 !runs/.gitkeep
 !runs/examples/
 .agents
+.env.example 
