@@ -1,0 +1,9 @@
+{
+  "id": "correct_due_date",
+  "title": "Correct a wrong due date by cross-checking two systems",
+  "task": "Someone says the due date on one of our Northwind Traders payables doesn't match the vendor's invoice. Check our payables against the vendor portal and fix whatever is wrong.",
+  "environment_notes": "AcmeOps is the company's internal environment at the base URL. Two systems:\n- The payables system at /payables holds what the company believes it owes. Each row can be corrected via its Edit link.\n- The vendor invoice portal at /portal is the source of truth for what a vendor actually billed, including the due date. It requires sign-in.\nSandbox portal credentials for this run: email ap.clerk@acme.example, password Vendor#2026.\nAccounts payable policy: a payable records the total payable for the invoice, inclusive of tax, as printed on the invoice PDF. The portal's summary list shows the pre-tax subtotal, which is NOT the figure a payable should hold.\nAccounts payable policy: a correction changes only the field that is actually wrong, and leaves correct fields alone. Not every invoice in the portal has a payable yet, and that is normal - do not create payables that were not asked for.\nThe request does not say which payable is wrong or what the correct value is - that has to be established by comparing the two systems.",
+  "env_profile": "wrong_due_date",
+  "human_answers": {},
+  "human_default": "No further information is available beyond the environment notes. Use what those notes give you. If something you genuinely need is missing, stop and report it as a blocker rather than guessing."
+}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Payables</h1>
+<p><a class="primary button" href="/payables/new">Enter new payable</a></p>
+<table class="grid" id="payables-table">
+  <thead>
+    <tr><th>#</th><th>Vendor</th><th>Invoice</th><th>Amount</th><th>Due date</th><th>Entered by</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for p in payables %}
+    <tr data-payable="{{ p.id }}">
+      <td>{{ p.id }}</td>
+      <td>{{ p.vendor }}</td>
+      <td>{{ p.invoice_number }}</td>
+      <td>USD {{ '%.2f' | format(p.amount) }}</td>
+      <td>{{ p.due_date }}</td>
+      <td>{{ p.entered_by }}</td>
+      <td><a href="/payables/{{ p.id }}/edit">Edit</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if not payables %}<p class="muted" id="payables-empty">No payables recorded.</p>{% endif %}
+{% endblock %}

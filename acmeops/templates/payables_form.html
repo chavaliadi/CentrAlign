@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<p><a href="/payables">&larr; Payables</a></p>
+<h1>{% if payable %}Edit payable #{{ payable.id }}{% else %}Enter new payable{% endif %}</h1>
+{% if error %}<p class="notice" id="form-error">Could not save: check the {{ error }} field.</p>{% endif %}
+
+<form method="post" action="{{ action }}" class="stack" id="payable-form">
+  {% set v = payable %}
+  {% if variant == 'b' %}
+  <div class="field">
+    <label for="f-inv">Invoice reference</label>
+    <input id="f-inv" name="invoice_number" value="{{ v.invoice_number if v else '' }}" required>
+  </div>
+  <div class="field">
+    <label for="f-due">Due date (YYYY-MM-DD)</label>
+    <input id="f-due" name="due_date" value="{{ v.due_date if v else '' }}" placeholder="YYYY-MM-DD" required>
+  </div>
+  <div class="field">
+    <label for="f-vendor">Supplier</label>
+    <select id="f-vendor" name="vendor" required>
+      {% for name in vendors %}
+      <option value="{{ name }}" {% if v and v.vendor == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="f-amt">Amount (USD)</label>
+    <input id="f-amt" name="amount" value="{{ '%.2f' | format(v.amount) if v else '' }}" required>
+  </div>
+  <button type="submit" class="primary">Save payable</button>
+  {% else %}
+  <div class="field">
+    <label for="f-vendor">Vendor</label>
+    <select id="f-vendor" name="vendor" required>
+      {% for name in vendors %}
+      <option value="{{ name }}" {% if v and v.vendor == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="f-inv">Invoice number</label>
+    <input id="f-inv" name="invoice_number" value="{{ v.invoice_number if v else '' }}" required>
+  </div>
+  <div class="field">
+    <label for="f-amt">Amount (USD)</label>
+    <input id="f-amt" name="amount" value="{{ '%.2f' | format(v.amount) if v else '' }}" required>
+  </div>
+  <div class="field">
+    <label for="f-due">Due date (YYYY-MM-DD)</label>
+    <input id="f-due" name="due_date" value="{{ v.due_date if v else '' }}" placeholder="YYYY-MM-DD" required>
+  </div>
+  <button type="submit" class="primary">Submit</button>
+  {% endif %}
+</form>
+{% endblock %}

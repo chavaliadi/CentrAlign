@@ -1,0 +1,9 @@
+{
+  "id": "outstanding_report",
+  "title": "Report total outstanding owed to a vendor (read-only)",
+  "task": "How much do we owe Globex Corporation in total across all their unpaid invoices? Give me the figure and tell me which invoices it covers.",
+  "environment_notes": "AcmeOps is the company's internal environment at the base URL. The vendor invoice portal at /portal lists invoices received from vendors and requires sign-in; it can be filtered by vendor and by status. Each invoice has a detail page and a downloadable PDF.\nSandbox portal credentials for this run: email ap.clerk@acme.example, password Vendor#2026.\nFinance policy: amounts owed are always stated as the total payable including tax, as printed on each invoice document.",
+  "env_profile": "clean",
+  "human_answers": {},
+  "human_default": "No further information is available beyond the environment notes. Use what those notes give you. If something you genuinely need is missing, stop and report it as a blocker rather than guessing."
+}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<p><a href="/portal">&larr; All invoices</a></p>
+<h1>Invoice {{ invoice.number }}</h1>
+
+{% if variant == 'b' %}
+<dl class="detail" id="invoice-detail">
+  <dt>Vendor</dt><dd data-field="vendor">{{ invoice.vendor }}</dd>
+  <dt>Payment due</dt><dd data-field="due_date">{{ invoice.due_date }}</dd>
+  <dt>Subtotal before tax</dt><dd data-field="net_amount">{{ invoice.currency }} {{ '%.2f' | format(invoice.net_amount) }}</dd>
+  <dt>Total payable</dt><dd data-field="amount_note">See attached PDF</dd>
+  <dt>Issued on</dt><dd data-field="issued_date">{{ invoice.issued_date }}</dd>
+  <dt>Status</dt><dd data-field="status">{{ invoice.status }}</dd>
+</dl>
+{% else %}
+<table class="detail" id="invoice-detail">
+  <tr><th>Vendor</th><td data-field="vendor">{{ invoice.vendor }}</td></tr>
+  <tr><th>Subtotal (net)</th><td data-field="net_amount">{{ invoice.currency }} {{ '%.2f' | format(invoice.net_amount) }}</td></tr>
+  <tr><th>Total payable</th><td data-field="amount_note">See attached PDF</td></tr>
+  <tr><th>Issued date</th><td data-field="issued_date">{{ invoice.issued_date }}</td></tr>
+  <tr><th>Due date</th><td data-field="due_date">{{ invoice.due_date }}</td></tr>
+  <tr><th>Status</th><td data-field="status">{{ invoice.status }}</td></tr>
+</table>
+{% endif %}
+
+<p><a class="primary button" id="pdf-link" href="/portal/invoice/{{ invoice.number }}/pdf">Download PDF</a></p>
+<p class="muted">The web view shows the pre-tax subtotal only. The PDF carries the
+<strong>total payable</strong> and is the authoritative document for accounts payable entry.</p>
+{% endblock %}

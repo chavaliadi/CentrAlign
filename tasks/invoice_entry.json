@@ -1,0 +1,12 @@
+{
+  "id": "invoice_entry",
+  "title": "Enter the latest vendor invoice into the payables system",
+  "task": "Find the latest invoice from Northwind Traders, get the amount and the due date, enter it into our payables system, and tell me once it's done.",
+  "environment_notes": "AcmeOps is the company's internal environment at the base URL. Two systems:\n- The vendor invoice portal at /portal lists invoices received from vendors. It requires sign-in. Each invoice has a detail page and a downloadable PDF.\n- The payables system at /payables holds the amounts the company owes, and is the system of record for accounts payable. /payables/new is the entry form.\nSandbox portal credentials for this run: email ap.clerk@acme.example, password Vendor#2026.\nAccounts payable policy: a payable must record the total payable for the invoice, inclusive of tax, as printed on the invoice document.",
+  "env_profile": "clean",
+  "human_answers": {
+    "which": "Use your judgement and proceed.",
+    "confirm": "Yes, go ahead."
+  },
+  "human_default": "No further information is available beyond the environment notes. Use what those notes give you. If something you genuinely need is missing, stop and report it as a blocker rather than guessing."
+}

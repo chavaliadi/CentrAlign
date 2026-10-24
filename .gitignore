@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+acmeops/acmeops.sqlite3
+acmeops/seed/*.pdf
+runs/*
+!runs/.gitkeep
+!runs/examples/
+
+.agents

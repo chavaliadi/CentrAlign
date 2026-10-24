@@ -1,0 +1,10 @@
+# Either provider works; both are installed so `--provider` is a live switch.
+anthropic>=0.40
+openai>=1.40
+playwright>=1.44
+fastapi>=0.110
+uvicorn>=0.29
+jinja2>=3.1
+python-multipart>=0.0.9
+pypdf>=4.0
+reportlab>=4.0
