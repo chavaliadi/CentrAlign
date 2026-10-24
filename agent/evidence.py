@@ -89,6 +89,19 @@ class RunRecorder:
             "",
         ]
 
+        contract = result.get("contract") or {}
+        if contract:
+            lines += [
+                "## Definition of done",
+                "",
+                "This is the outcome contract used to plan, execute, and verify the run.",
+                "",
+                "```json",
+                json.dumps(contract, indent=2, default=str),
+                "```",
+                "",
+            ]
+
         # A run that errored must say why here. Printing only the status left a
         # reader with "status: error" and nowhere to look, which is worse than
         # no report at all.

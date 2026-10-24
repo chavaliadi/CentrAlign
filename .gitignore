@@ -8,5 +8,4 @@ acmeops/seed/*.pdf
 runs/*
 !runs/.gitkeep
 !runs/examples/
-
 .agents

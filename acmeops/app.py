@@ -30,6 +30,7 @@ from . import db
 from .chaos import CHAOS
 
 BASE = Path(__file__).parent
+# These credentials are sandbox fixtures for the local mock app and are intentionally not secret.
 PORTAL_USER = "ap.clerk@acme.example"
 PORTAL_PASSWORD = "Vendor#2026"
 ACTOR = "ai-task-worker"

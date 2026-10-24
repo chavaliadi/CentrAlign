@@ -2,7 +2,7 @@
 
 The controller used to import `BrowserSession`, `register_browser_tools`,
 `register_file_tools` and `register_human_tools` and install them on every run.
-That made the README's claim that `loop.py` holds no browser/PDF/payables
+That made the README's claim that `loop.py` holds no browser or document
 knowledge false, and it made the generalisation story weaker than advertised:
 adding a non-browser capability meant editing the controller, not just adding a
 file.

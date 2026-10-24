@@ -43,6 +43,9 @@ against the same unchanged agent**. Each produces an evidence folder under
 
 To watch the approval gate work, drop `--auto-approve` — the run pauses at the
 terminal before every write. To watch the browser, add `--headed`.
+To review the generated definition of done before execution, add
+`--review-contract`; declining it ends the run as blocked without executing a
+tool.
 
 ```bash
 python run.py --task invoice_entry --start-env            # one task, approvals prompted
@@ -53,13 +56,14 @@ python run.py --all --chaos off --auto-approve --start-env # clean baseline, no 
 
 ```bash
 python -m uvicorn acmeops.app:app --port 8099 &      # environment for the live suites
-python -m tests.test_tools                # 26 checks: browser tools against the live app
-python -m tests.test_loop_offline         # 24 checks: the control loop, model stubbed out
-python -m tests.test_llm_provider         # 30 checks: provider abstraction, no network
+python -m tests.test_tools                # 34 checks: browser tools against the live app
+python -m tests.test_loop_offline         # 28 checks: the control loop, model stubbed out
+python -m tests.test_llm_provider         # 36 checks: provider abstraction, no network
+python -m tests.test_paraphrase_offline   # 23 checks: outcome contracts across request wordings
 python -m tests.test_end_to_end_scripted  # 18 checks: whole pipeline, model stubbed out
 ```
 
-98 checks, none of which need an API key.
+139 checks, none of which need an API key.
 
 ### What this proves, precisely
 
@@ -237,9 +241,9 @@ confusion is not a reliability strategy.
 
 * **Deciding what "done" means.** Nothing in the task files lists steps,
   success criteria, URLs to visit or fields to fill.
-* **Every action.** One tool per turn, chosen from live observations. There is
-  no scripted sequence anywhere in the codebase — `--all` runs three
-  structurally different tasks through the same code path.
+* **Every production action.** One tool per turn, chosen from live
+  observations. There is no scripted sequence in the production control path
+  — `--all` runs three structurally different tasks through the same code path.
 * **Finding the authoritative value.** No task says "read the PDF". The agent
   has to notice that the web view withholds the total and go to the document.
 * **Recovery.** Re-authenticating after a session expiry, retrying through

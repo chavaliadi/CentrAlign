@@ -95,6 +95,7 @@ class TaskWorker:
         responder: Responder,
         approval_hook: Callable[[str, dict[str, Any]], bool] | None = None,
         toolset_factory: ToolsetFactory = browser_toolset,
+        review_contract: bool = False,
     ) -> None:
         self.task_id = task_id
         self.task = task
@@ -102,6 +103,7 @@ class TaskWorker:
         self.read_state = read_state
         self.responder = responder
         self.approval_hook = approval_hook or self._console_approval
+        self.review_contract = review_contract
         # What the agent can do is decided outside the controller.
         self.toolset_factory = toolset_factory
         self.memory = Memory()
@@ -144,11 +146,17 @@ class TaskWorker:
         sys.stdout.flush()
         return sys.stdin.readline().strip().lower() in ("y", "yes")
 
-    def _seek_approval(self, tool_name: str, arguments: dict[str, Any]) -> tuple[bool, str]:
+    def _seek_approval(
+        self,
+        tool_name: str,
+        arguments: dict[str, Any],
+        *,
+        force_prompt: bool = False,
+    ) -> tuple[bool, str]:
         signature = f"{tool_name}:{json.dumps(arguments, sort_keys=True, default=str)}"
         repeat = signature in self._mutating_calls
 
-        if SETTINGS.auto_approve:
+        if SETTINGS.auto_approve and not force_prompt:
             approved = True
             self.recorder.event(
                 "approval",
@@ -298,10 +306,30 @@ class TaskWorker:
         self.recorder.event("understand", contract=contract.as_dict())
         self.recorder.meta["contract"] = contract.as_dict()
         print(f"\n[understand] {contract.goal}")
+        print("[contract] Definition of done, subject to review before any action:")
+        print(json.dumps(contract.as_dict(), indent=2))
         for criterion in contract.success_criteria:
             print(f"   done when: {criterion}")
         if contract.unknowns:
             print(f"   unknowns: {contract.unknowns}")
+
+        if self.review_contract:
+            approved, _ = self._seek_approval(
+                "review_contract",
+                contract.as_dict(),
+                force_prompt=True,
+            )
+            if not approved:
+                result = RunResult(
+                    task_id=self.task_id,
+                    status="blocked",
+                    steps_used=self._step,
+                    replans=0,
+                    contract=contract.as_dict(),
+                    run_dir=str(self.recorder.run_dir),
+                )
+                self._finalise(result)
+                return result
 
         # --- Plan ------------------------------------------------------------
         plan = make_plan(contract, self.registry.describe(), self.environment_notes)

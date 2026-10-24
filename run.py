@@ -83,6 +83,8 @@ def main() -> int:
     parser.add_argument("--all", action="store_true", help="run every task in tasks/")
     parser.add_argument("--auto-approve", action="store_true",
                         help="grant write approvals automatically (still recorded in the trace)")
+    parser.add_argument("--review-contract", action="store_true",
+                        help="pause after the outcome contract is printed for human confirmation")
     parser.add_argument("--chaos", choices=["on", "off"], default="on",
                         help="failure injection in the environment (default on)")
     parser.add_argument("--chaos-seed", type=int, default=7)
@@ -252,6 +254,7 @@ def main() -> int:
                 ),
                 read_state=read_state,
                 responder=responder or console_responder,
+                review_contract=args.review_contract,
             )
             result = worker.run()
             results.append(result)

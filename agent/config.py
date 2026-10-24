@@ -111,7 +111,7 @@ class Settings:
     max_observation_chars: int = 2500
 
     # --- environment ---------------------------------------------------------
-    base_url: str = os.environ.get("ACMEOPS_URL", "http://127.0.0.1:8099")
+    base_url: str = os.environ.get("COMPANY_BASE_URL", "http://127.0.0.1:8099")
     headless: bool = os.environ.get("AGENT_HEADLESS", "1") not in ("0", "false", "False")
     browser_executable: str = os.environ.get(
         "PLAYWRIGHT_CHROMIUM_PATH", "/opt/pw-browsers/chromium/chrome-linux/chrome"
