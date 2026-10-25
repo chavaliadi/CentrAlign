@@ -21,7 +21,9 @@ back to re-plan with the verifier's stated reason.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from typing import Any, Callable
 
 from .config import SETTINGS
@@ -52,6 +54,144 @@ Reply with JSON only:
 
 
 STATE_CHAR_LIMIT = 12000
+
+_INVOICE_NUMBER = re.compile(r"\b[A-Z]{2,}(?:-\d+)+\b")
+_AMOUNT = re.compile(
+    r"(?:amount|total payable|total)[^0-9]{0,80}"
+    r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)",
+    re.IGNORECASE,
+)
+_DUE_DATE = re.compile(r"due date[^0-9]{0,40}(\d{4}-\d{2}-\d{2})", re.IGNORECASE)
+
+
+def _decimal(value: Any) -> Decimal | None:
+    try:
+        return Decimal(str(value).replace(",", ""))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def _invoice_verification(
+    contract: OutcomeContract, state: dict[str, Any]
+) -> tuple[list[dict[str, Any]], list[str], str | None]:
+    """Check invoice requirements that can be established from persisted state."""
+    if not contract.requires_write:
+        return [], [], None
+
+    criteria_text = " ".join(
+        [contract.goal, *contract.success_criteria, *contract.required_evidence]
+    )
+    if not any(word in criteria_text.lower() for word in ("invoice", "payable")):
+        return [], [], None
+
+    payables = state.get("payables_system", {}).get("payables")
+    invoices = state.get("vendor_invoices", {}).get("invoices")
+    if not isinstance(payables, list) or not isinstance(invoices, list):
+        return (
+            [],
+            ["invoice verification requires payables and invoice records in state"],
+            "inconclusive",
+        )
+
+    invoice_numbers = set(_INVOICE_NUMBER.findall(criteria_text))
+    vendors = {str(invoice.get("vendor")) for invoice in invoices if invoice.get("vendor")}
+    mentioned_vendors = {vendor for vendor in vendors if vendor.lower() in criteria_text.lower()}
+    if len(invoice_numbers) > 1:
+        return [], [], "the contract names more than one invoice and cannot identify one target"
+
+    target_number = next(iter(invoice_numbers), None)
+    if target_number:
+        source_matches = [i for i in invoices if i.get("number") == target_number]
+    elif len(mentioned_vendors) == 1:
+        vendor = next(iter(mentioned_vendors))
+        candidates = [i for i in invoices if i.get("vendor") == vendor]
+        if "latest" in criteria_text.lower() or "newest" in criteria_text.lower():
+            latest_date = max((str(i.get("issued_date", "")) for i in candidates), default="")
+            source_matches = [i for i in candidates if str(i.get("issued_date", "")) == latest_date]
+        else:
+            source_matches = candidates
+    else:
+        return (
+            [],
+            ["the requested invoice could not be identified from the contract and state"],
+            "inconclusive",
+        )
+
+    if len(source_matches) != 1:
+        if not source_matches:
+            return [
+                {"criterion": "the requested invoice exists in the vendor records",
+                 "met": False, "evidence": "no matching invoice"}
+            ], ["the requested invoice was not found in the vendor records"], "refuted"
+        return [
+            {"criterion": "the requested invoice can be identified uniquely",
+             "met": False, "evidence": f"{len(source_matches)} plausible invoice records"}
+        ], ["the contract matches multiple invoice records"], "inconclusive"
+
+    source = source_matches[0]
+    target_number = str(source.get("number", target_number or ""))
+    payable_matches = [p for p in payables if p.get("invoice_number") == target_number]
+    findings: list[dict[str, Any]] = [
+        {
+            "criterion": f"exactly one persisted payable exists for {target_number}",
+            "met": len(payable_matches) == 1,
+            "evidence": f"{len(payable_matches)} matching payable row(s)",
+        }
+    ]
+    discrepancies: list[str] = []
+    if len(payable_matches) != 1:
+        if len(payable_matches) == 0:
+            discrepancies.append(f"no persisted payable exists for {target_number}")
+        else:
+            discrepancies.append(f"{len(payable_matches)} persisted payables exist for {target_number}")
+        return findings, discrepancies, "refuted"
+
+    payable = payable_matches[0]
+    expected_vendor = next(iter(mentioned_vendors), str(source.get("vendor", "")))
+    vendor_ok = payable.get("vendor") == expected_vendor and source.get("vendor") == expected_vendor
+    findings.append({
+        "criterion": "the payable and source invoice have the expected vendor",
+        "met": vendor_ok,
+        "evidence": f"payable={payable.get('vendor')!r}, source={source.get('vendor')!r}",
+    })
+    if not vendor_ok:
+        discrepancies.append(
+            f"vendor mismatch: payable={payable.get('vendor')!r}, source={source.get('vendor')!r}"
+        )
+
+    amount_match = _AMOUNT.search(criteria_text)
+    expected_amount = _decimal(amount_match.group(1)) if amount_match else _decimal(source.get("amount"))
+    payable_amount = _decimal(payable.get("amount"))
+    source_amount = _decimal(source.get("amount"))
+    amount_ok = (
+        expected_amount is not None
+        and payable_amount == expected_amount
+        and source_amount == expected_amount
+    )
+    findings.append({
+        "criterion": "the payable amount matches the authoritative invoice amount",
+        "met": amount_ok,
+        "evidence": f"payable={payable.get('amount')!r}, source={source.get('amount')!r}",
+    })
+    if not amount_ok:
+        discrepancies.append(
+            f"amount mismatch: payable={payable.get('amount')!r}, source={source.get('amount')!r}"
+        )
+
+    date_match = _DUE_DATE.search(criteria_text)
+    expected_due_date = date_match.group(1) if date_match else str(source.get("due_date", ""))
+    due_date_ok = payable.get("due_date") == expected_due_date == source.get("due_date")
+    findings.append({
+        "criterion": "the payable due date matches the invoice due date",
+        "met": due_date_ok,
+        "evidence": f"payable={payable.get('due_date')!r}, source={source.get('due_date')!r}",
+    })
+    if not due_date_ok:
+        discrepancies.append(
+            f"due date mismatch: payable={payable.get('due_date')!r}, source={source.get('due_date')!r}"
+        )
+
+    return findings, discrepancies, "confirmed" if all(c["met"] for c in findings) else "refuted"
 
 
 @dataclass
@@ -143,7 +283,21 @@ def verify(
     declared: dict[str, Any],
     read_state: StateReader,
 ) -> Verdict:
-    state = read_state()
+    try:
+        state = read_state()
+    except (ConnectionError, OSError, TimeoutError, ValueError) as exc:
+        return Verdict(
+            verdict="inconclusive",
+            criteria=[],
+            discrepancies=[
+                f"independent verification could not read application state: "
+                f"{type(exc).__name__}: {exc}"
+            ],
+            reason="The independent application state source was unavailable.",
+            what_to_fix="Restore access to the application state and verify again.",
+            state_snapshot={},
+            overrides=["state read failed; confirmation is not possible"],
+        )
     rendered = json.dumps(state, indent=2, default=str)
     truncated = len(rendered) > STATE_CHAR_LIMIT
     if truncated:
@@ -183,7 +337,20 @@ def verify(
             criteria.append(entry)
 
     discrepancies = [str(x) for x in data.get("discrepancies", []) or []]
+    invoice_criteria, invoice_discrepancies, invoice_verdict = _invoice_verification(
+        contract, state
+    )
+    criteria.extend(invoice_criteria)
+    discrepancies.extend(invoice_discrepancies)
+    invoice_overrides: list[str] = []
+    if verdict == "confirmed" and invoice_verdict in ("refuted", "inconclusive"):
+        verdict = invoice_verdict
+        invoice_overrides.append(
+            f"mechanical invoice checks returned {invoice_verdict}; "
+            "the model cannot confirm an invoice outcome that persisted state does not support"
+        )
     verdict, overrides = _enforce(verdict, criteria, contract, truncated=truncated)
+    overrides.extend(invoice_overrides)
     discrepancies.extend(overrides)
 
     return Verdict(
