@@ -97,7 +97,11 @@ def _invoice_verification(
     vendors = {str(invoice.get("vendor")) for invoice in invoices if invoice.get("vendor")}
     mentioned_vendors = {vendor for vendor in vendors if vendor.lower() in criteria_text.lower()}
     if len(invoice_numbers) > 1:
-        return [], [], "the contract names more than one invoice and cannot identify one target"
+        return (
+            [],
+            ["the contract names more than one invoice and cannot identify one target"],
+            "inconclusive",
+        )
 
     target_number = next(iter(invoice_numbers), None)
     if target_number:

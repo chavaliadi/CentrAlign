@@ -89,6 +89,18 @@ def run_case(name: str, expected: str, snapshot: dict[str, Any]) -> None:
     check(name, result.verdict == expected, result.as_dict())
 
 
+def run_contract_case(
+    name: str, contract: OutcomeContract, expected: str, snapshot: dict[str, Any]
+) -> None:
+    original = verifier.complete_json
+    verifier.complete_json = model_confirmation
+    try:
+        result = verifier.verify(contract, {"outcome": "done"}, lambda: snapshot)
+    finally:
+        verifier.complete_json = original
+    check(name, result.verdict == expected, result.as_dict())
+
+
 def run() -> int:
     print("\n[1] exact invoice state is confirmed")
     run_case("matching invoice is confirmed", "confirmed", state())
@@ -97,10 +109,39 @@ def run() -> int:
     run_case("incorrect amount is rejected", "refuted", state(amount=7390.41))
     run_case("incorrect due date is rejected", "refuted", state(due_date="2026-10-29"))
     run_case("incorrect vendor is rejected", "refuted", state(vendor="Globex Corporation"))
+    run_case(
+        "duplicate persisted payables are rejected",
+        "refuted",
+        state(
+            extra_payables=[
+                {
+                    "id": 2,
+                    "vendor": "Northwind Traders",
+                    "invoice_number": "INV-1067",
+                    "amount": 7390.40,
+                    "due_date": "2026-10-28",
+                }
+            ]
+        ),
+    )
 
     print("\n[3] identity and evidence failures are not accepted")
     run_case("missing invoice is rejected", "refuted", state(invoices=[]))
     run_case("incomplete state is inconclusive", "inconclusive", {})
+    run_contract_case(
+        "multiple invoice numbers cannot be confirmed",
+        OutcomeContract(
+            goal="payables records exist for INV-1067 and INV-1042",
+            success_criteria=[
+                "a payable row exists for INV-1067",
+                "a payable row exists for INV-1042",
+            ],
+            requires_write=True,
+            systems_of_record=["payables"],
+        ),
+        "inconclusive",
+        state(),
+    )
     run_case(
         "multiple plausible invoices are inconclusive",
         "inconclusive",
